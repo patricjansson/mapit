@@ -52,6 +52,7 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [missCount, setMissCount] = useState(0);
   const [wrongCountryCount, setWrongCountryCount] = useState(0);
+  const MAX_WRONG_COUNTRY_ATTEMPTS = 2;
 
   useEffect(() => {
     getNewCity();
@@ -147,7 +148,7 @@ function App() {
         setTimeout(() => {
           setShowWrongCountry(false);
           setGameOver(true);
-        }, 1000);
+        }, 3000);
       } else {
         setTotalScore(prev => prev + response.data.score);
       }
@@ -176,7 +177,7 @@ function App() {
   };
 
   if (gameOver) {
-    const maxPossibleScore = 1000; // Exempel på maxpoäng
+    const maxPossibleScore = 1000;
     const scorePercentage = (totalScore / maxPossibleScore) * 100;
 
     return (
@@ -223,6 +224,18 @@ function App() {
       <div className="score-display">
         Poäng: {totalScore}
         {currentScore !== null && <div className="current-score">+{currentScore}</div>}
+      </div>
+      <div className="attempts-display">
+        <div className="attempts-container">
+          {Array.from({ length: MAX_WRONG_COUNTRY_ATTEMPTS }).map((_, index) => (
+            <div
+              key={index}
+              className={`attempt-icon ${index < (MAX_WRONG_COUNTRY_ATTEMPTS - wrongCountryCount) ? 'active' : 'used'}`}
+            >
+              🏳️
+            </div>
+          ))}
+        </div>
       </div>
       <div className="timer-display">
         {!hasGuessed && !showCityName && (

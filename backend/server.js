@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const axios = require('axios');
 const app = express();
 const port = process.env.PORT || 3001;
 
@@ -99,7 +100,121 @@ app.get('/api/random-city', (req, res) => {
     });
 });
 
-// Calculate distance
+// Function to get country from coordinates using Nominatim API
+async function getCountryFromCoordinates(lat, lng) {
+    try {
+        const response = await axios.get(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10&addressdetails=1`,
+            {
+                headers: {
+                    'User-Agent': 'GeographyQuiz/1.0'
+                }
+            }
+        );
+
+        if (response.data && response.data.address) {
+            return response.data.address.country;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error fetching country from Nominatim:', error);
+        return null;
+    }
+}
+
+// Updated function to check if two coordinates are in the same country
+async function isInSameCountry(lat1, lng1, lat2, lng2) {
+    try {
+        // Try to get countries from Nominatim API
+        const [country1, country2] = await Promise.all([
+            getCountryFromCoordinates(lat1, lng1),
+            getCountryFromCoordinates(lat2, lng2)
+        ]);
+
+        // If we got both countries from the API, compare them
+        if (country1 && country2) {
+            return country1 === country2;
+        }
+
+        // Fallback to our existing boundary check
+        const countryBoundaries = {
+            'Sweden': { minLat: 55.0, maxLat: 69.0, minLng: 11.0, maxLng: 24.0 },
+            'Norway': { minLat: 58.0, maxLat: 71.0, minLng: 4.0, maxLng: 31.0 },
+            'Denmark': { minLat: 54.5, maxLat: 58.0, minLng: 8.0, maxLng: 15.0 },
+            'Finland': { minLat: 60.0, maxLat: 70.0, minLng: 20.0, maxLng: 32.0 },
+            'Iceland': { minLat: 63.0, maxLat: 66.0, minLng: -25.0, maxLng: -13.0 },
+            'UK': { minLat: 49.0, maxLat: 61.0, minLng: -8.0, maxLng: 2.0 },
+            'Ireland': { minLat: 51.0, maxLat: 55.0, minLng: -11.0, maxLng: -5.0 },
+            'France': { minLat: 41.0, maxLat: 51.0, minLng: -5.0, maxLng: 9.0 },
+            'Germany': { minLat: 47.0, maxLat: 55.0, minLng: 6.0, maxLng: 15.0 },
+            'Italy': { minLat: 36.0, maxLat: 47.0, minLng: 6.0, maxLng: 18.0 },
+            'Spain': { minLat: 36.0, maxLat: 44.0, minLng: -10.0, maxLng: 4.0 },
+            'Portugal': { minLat: 36.0, maxLat: 42.0, minLng: -10.0, maxLng: -6.0 },
+            'Netherlands': { minLat: 50.0, maxLat: 54.0, minLng: 3.0, maxLng: 7.0 },
+            'Belgium': { minLat: 49.0, maxLat: 51.0, minLng: 2.0, maxLng: 6.0 },
+            'Switzerland': { minLat: 45.0, maxLat: 48.0, minLng: 6.0, maxLng: 10.0 },
+            'Austria': { minLat: 46.0, maxLat: 49.0, minLng: 9.0, maxLng: 17.0 },
+            'Hungary': { minLat: 45.0, maxLat: 49.0, minLng: 16.0, maxLng: 23.0 },
+            'Czech Republic': { minLat: 48.0, maxLat: 51.0, minLng: 12.0, maxLng: 19.0 },
+            'Poland': { minLat: 49.0, maxLat: 55.0, minLng: 14.0, maxLng: 24.0 },
+            'Slovakia': { minLat: 47.0, maxLat: 50.0, minLng: 16.0, maxLng: 22.0 },
+            'Slovenia': { minLat: 45.0, maxLat: 47.0, minLng: 13.0, maxLng: 16.0 },
+            'Croatia': { minLat: 42.0, maxLat: 47.0, minLng: 13.0, maxLng: 19.0 },
+            'Serbia': { minLat: 42.0, maxLat: 46.0, minLng: 18.0, maxLng: 23.0 },
+            'Bulgaria': { minLat: 41.0, maxLat: 44.0, minLng: 22.0, maxLng: 28.0 },
+            'Romania': { minLat: 43.0, maxLat: 48.0, minLng: 20.0, maxLng: 30.0 },
+            'Greece': { minLat: 35.0, maxLat: 42.0, minLng: 19.0, maxLng: 28.0 },
+            'Turkey': { minLat: 36.0, maxLat: 42.0, minLng: 26.0, maxLng: 45.0 },
+            'Cyprus': { minLat: 34.0, maxLat: 36.0, minLng: 32.0, maxLng: 35.0 },
+            'Malta': { minLat: 35.0, maxLat: 36.0, minLng: 14.0, maxLng: 15.0 },
+            'Liechtenstein': { minLat: 47.0, maxLat: 47.5, minLng: 9.0, maxLng: 10.0 },
+            'San Marino': { minLat: 43.0, maxLat: 44.0, minLng: 12.0, maxLng: 13.0 },
+            'Vatican': { minLat: 41.0, maxLat: 42.0, minLng: 12.0, maxLng: 13.0 },
+            'Monaco': { minLat: 43.0, maxLat: 44.0, minLng: 7.0, maxLng: 8.0 },
+            'Andorra': { minLat: 42.0, maxLat: 43.0, minLng: 1.0, maxLng: 2.0 },
+            'Montenegro': { minLat: 41.0, maxLat: 43.0, minLng: 18.0, maxLng: 20.0 },
+            'North Macedonia': { minLat: 40.0, maxLat: 43.0, minLng: 20.0, maxLng: 23.0 },
+            'Albania': { minLat: 39.0, maxLat: 43.0, minLng: 19.0, maxLng: 21.0 },
+            'Bosnia': { minLat: 42.0, maxLat: 45.0, minLng: 15.0, maxLng: 20.0 },
+            'Moldova': { minLat: 45.0, maxLat: 49.0, minLng: 26.0, maxLng: 30.0 },
+            'Ukraine': { minLat: 44.0, maxLat: 53.0, minLng: 22.0, maxLng: 40.0 },
+            'Belarus': { minLat: 51.0, maxLat: 56.0, minLng: 23.0, maxLng: 33.0 },
+            'Lithuania': { minLat: 53.0, maxLat: 56.0, minLng: 20.0, maxLng: 27.0 },
+            'Latvia': { minLat: 55.0, maxLat: 58.0, minLng: 20.0, maxLng: 28.0 },
+            'Estonia': { minLat: 57.0, maxLat: 60.0, minLng: 21.0, maxLng: 28.0 }
+        };
+
+        function findCountry(lat, lng) {
+            for (const [country, bounds] of Object.entries(countryBoundaries)) {
+                if (lat >= bounds.minLat && lat <= bounds.maxLat &&
+                    lng >= bounds.minLng && lng <= bounds.maxLng) {
+                    return country;
+                }
+            }
+            return null;
+        }
+
+        const fallbackCountry1 = findCountry(lat1, lng1);
+        const fallbackCountry2 = findCountry(lat2, lng2);
+
+        if (fallbackCountry1 && fallbackCountry2) {
+            return fallbackCountry1 === fallbackCountry2;
+        }
+
+        // If all else fails, use distance check
+        const maxDistanceForSameCountry = 100;
+        const distance = calculateDistance(lat1, lng1, lat2, lng2);
+        return distance <= maxDistanceForSameCountry;
+    } catch (error) {
+        console.error('Error in isInSameCountry:', error);
+        // If there's an error, fall back to distance check
+        const maxDistanceForSameCountry = 100;
+        const distance = calculateDistance(lat1, lng1, lat2, lng2);
+        return distance <= maxDistanceForSameCountry;
+    }
+}
+
+// Update the calculate-distance endpoint to use async/await
 app.post('/api/calculate-distance', async (req, res) => {
     const { cityName, clickedLat, clickedLng } = req.body;
 
@@ -113,7 +228,7 @@ app.post('/api/calculate-distance', async (req, res) => {
         const score = calculateScore(distance);
 
         // Check if clicked location is in the wrong country
-        const wrongCountry = !isInSameCountry(city.lat, city.lng, clickedLat, clickedLng);
+        const wrongCountry = !(await isInSameCountry(city.lat, city.lng, clickedLat, clickedLng));
 
         res.json({
             city: cityName,
@@ -128,15 +243,6 @@ app.post('/api/calculate-distance', async (req, res) => {
         res.status(500).json({ error: 'Error calculating distance' });
     }
 });
-
-// Helper function to check if two coordinates are in the same country
-function isInSameCountry(lat1, lng1, lat2, lng2) {
-    // This is a simplified check - in a real application, you would use a proper
-    // geocoding service to determine the country for each coordinate
-    const maxDistanceForSameCountry = 1000; // 1000 km
-    const distance = calculateDistance(lat1, lng1, lat2, lng2);
-    return distance <= maxDistanceForSameCountry;
-}
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);

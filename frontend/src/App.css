@@ -325,7 +325,7 @@ h1 {
   justify-content: center;
   align-items: center;
   z-index: 2000;
-  animation: fadeIn 0.2s ease-out;
+  animation: fadeIn 0.2s ease-out, shake 0.5s ease-in-out infinite;
 }
 
 .wrong-country-text {
@@ -334,13 +334,36 @@ h1 {
   color: white;
   text-transform: uppercase;
   text-shadow: 4px 4px 0 #000;
-  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), shake 0.5s ease-in-out infinite;
   transform-origin: center;
   background: rgba(0, 0, 0, 0.2);
   padding: 20px 40px;
   border-radius: 20px;
   border: 5px solid white;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+}
+
+@keyframes shake {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-5px);
+  }
+
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 .distance-display {
@@ -592,4 +615,36 @@ h1 {
   font-weight: bold;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.attempts-display {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 10px;
+  border-radius: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.attempts-container {
+  display: flex;
+  gap: 10px;
+}
+
+.attempt-icon {
+  font-size: 1.5rem;
+  opacity: 0.3;
+  transition: all 0.3s ease;
+}
+
+.attempt-icon.active {
+  opacity: 1;
+  animation: float 3s ease-in-out infinite;
+}
+
+.attempt-icon.used {
+  opacity: 0.3;
+  transform: scale(0.8);
 }
