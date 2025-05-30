@@ -1,89 +1,67 @@
 # Geografi Quiz
 
-Ett roligt och utmanande geografispel där du ska placera städer på en karta. Testa dina geografikunskaper och se hur nära du kan komma!
+Ett roligt och utmanande geografispel där du ska placera europeiska huvudstäder på kartan så nära deras faktiska plats som möjligt!
 
 ## 🎮 Spelet
 
-I Geografi Quiz får du en stad att placera på kartan. Du har 5 sekunder på dig att klicka var du tror staden ligger. Ju närmare du kommer, desto fler poäng får du!
+I Geografi Quiz får du en sekund på dig att läsa namnet på en huvudstad, och sedan har du 20 sekunder på dig att placera den på kartan. Ju närmare du klickar, desto fler poäng får du!
+
+### Speciella händelser
+- Om du klickar inom 40 km från rätt plats får du en guldregn-animation!
+- Om du klickar i fel land förlorar du alla poäng och spelet är slut
+- Om du missar att placera staden tre gånger är spelet slut
 
 ### Poängsystem
-- 100 poäng för gissningar inom 1 km
-- 0 poäng för gissningar över 10 000 km
-- Poäng beräknas logaritmiskt mellan dessa värden
-- Om du klickar i fel land förlorar du alla poäng!
-
-### Särskilda händelser
-- Klickar du inom 40 km från rätt plats får du ett guldregn! ✨
-- Klickar du i fel land visas en "FEL LAND" splash screen
-- Missar du tiden visas en "MISS" splash screen
+- Poäng baseras på hur nära du klickar på den faktiska platsen
+- Ju närmare, desto fler poäng!
+- Klicka i rätt land för att få poäng
 
 ## 🚀 Kom igång
 
-### Krav
-- Node.js (version 14 eller högre)
-- npm (kommer med Node.js)
-
-### Installation
-
-1. Klona detta repository:
-```bash
-git clone [repository-url]
-cd mapit
-```
-
-2. Kör start-skriptet:
-```bash
-./start.sh
-```
-
-Skriptet kommer att:
-- Kontrollera att du har Node.js och npm installerat
-- Installera alla nödvändiga beroenden
-- Starta både backend- och frontend-servrarna
+### Automatisk installation
+1. Klona detta repository
+2. Kör `./start.sh` i terminalen
+3. Spelet kommer att starta automatiskt och vara tillgängligt på http://localhost:3000
 
 ### Manuell installation
-
-Om du föredrar att installera manuellt:
-
-1. Installera backend-beroenden:
-```bash
-cd backend
-npm install
-```
-
-2. Installera frontend-beroenden:
-```bash
-cd frontend
-npm install
-```
-
-3. Starta servrarna:
-```bash
-# I backend-mappen
-npm start
-
-# I frontend-mappen
-npm start
-```
+1. Klona detta repository
+2. Installera beroenden:
+   ```bash
+   cd frontend
+   npm install
+   cd ../backend
+   npm install
+   ```
+3. Starta backend-servern:
+   ```bash
+   cd backend
+   npm start
+   ```
+4. Starta frontend-servern:
+   ```bash
+   cd frontend
+   npm start
+   ```
 
 ## 🛠️ Teknisk information
 
 ### Frontend
-- Byggt med React och TypeScript
-- Använder Leaflet för kartan
-- Responsiv design som fungerar på alla skärmstorlekar
+- React med TypeScript
+- Leaflet för kartan
+- CSS-animationer för speleffekter
+- Responsiv design
 
 ### Backend
 - Node.js med Express
-- Enkel REST API
-- Beräknar avstånd med Haversine-formeln
+- Beräknar avstånd mellan koordinater
+- Hanterar städer och deras koordinater
 
 ## 🎯 Tips för att spela
 
-1. Var snabb! Du har bara 5 sekunder på dig
-2. Titta på kartans konturer för att identifiera länder
-3. Kom ihåg att fel land = noll poäng!
-4. Försök komma inom 40 km för att se guldregnet! ✨
+1. Lär dig läsa kartan snabbt
+2. Var noggrann med dina klick
+3. Var extra försiktig med gränsområden mellan länder
+4. Kom ihåg att du bara har 20 sekunder per stad!
 
 ## 📝 Licens
 
