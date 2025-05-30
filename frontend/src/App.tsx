@@ -6,6 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import './App.css';
 
 const API_URL = 'http://localhost:3001';
+const TIME_LIMIT = 5;
 
 // Fix for default marker icons in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -38,9 +39,15 @@ function App() {
   const [currentCity, setCurrentCity] = useState<string>('');
   const [cityCoords, setCityCoords] = useState<[number, number] | null>(null);
   const [clickedCoords, setClickedCoords] = useState<[number, number] | null>(null);
-  const [distance, setDistance] = useState<number | null>(null);
-  const [message, setMessage] = useState<string>('');
   const [hasGuessed, setHasGuessed] = useState(false);
+  const [totalScore, setTotalScore] = useState(0);
+  const [currentScore, setCurrentScore] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
+  const [showMiss, setShowMiss] = useState(false);
+  const [showWrongCountry, setShowWrongCountry] = useState(false);
+  const [showCityName, setShowCityName] = useState(false);
+  const [distance, setDistance] = useState<number | null>(null);
+  const [goldRain, setGoldRain] = useState(false);
 
   useEffect(() => {
     getNewCity();
@@ -60,15 +67,45 @@ function App() {
     };
   }, [hasGuessed]);
 
+  useEffect(() => {
+    let countdownTimer: NodeJS.Timeout;
+    if (!hasGuessed && timeLeft > 0 && !showCityName) {
+      countdownTimer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(countdownTimer);
+            setShowMiss(true);
+            setTimeout(() => {
+              setShowMiss(false);
+              getNewCity();
+            }, 1000);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (countdownTimer) {
+        clearInterval(countdownTimer);
+      }
+    };
+  }, [hasGuessed, timeLeft, showCityName]);
+
   const getNewCity = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/random-city`);
       setCurrentCity(response.data.city);
       setCityCoords([response.data.lat, response.data.lng]);
       setClickedCoords(null);
-      setDistance(null);
+      setCurrentScore(null);
       setHasGuessed(false);
-      setMessage(`Var ligger ${response.data.city}?`);
+      setTimeLeft(TIME_LIMIT);
+      setDistance(null);
+      setShowCityName(true);
+      setTimeout(() => {
+        setShowCityName(false);
+      }, 1000);
     } catch (error) {
       console.error('Error fetching city:', error);
     }
@@ -83,9 +120,26 @@ function App() {
         clickedLat: lat,
         clickedLng: lng,
       });
-      setDistance(response.data.distance);
       setClickedCoords([response.data.clickedLat, response.data.clickedLng]);
-      setMessage(`Du klickade ${response.data.distance}km från ${response.data.city}`);
+      setCurrentScore(response.data.score);
+      setDistance(response.data.distance);
+
+      if (response.data.distance <= 40 && !response.data.wrongCountry) {
+        setGoldRain(true);
+        setTimeout(() => setGoldRain(false), 1500);
+      }
+
+      if (response.data.wrongCountry) {
+        setShowWrongCountry(true);
+        setTotalScore(0);
+        setTimeout(() => {
+          setShowWrongCountry(false);
+          getNewCity();
+        }, 1000);
+      } else {
+        setTotalScore(prev => prev + response.data.score);
+      }
+
       setHasGuessed(true);
     } catch (error) {
       console.error('Error calculating distance:', error);
@@ -94,8 +148,20 @@ function App() {
 
   return (
     <div className="App">
-      <h1>Geografi Quiz</h1>
-      <div className="message">{message}</div>
+      <div className="score-display">
+        Poäng: {totalScore}
+        {currentScore !== null && <div className="current-score">+{currentScore}</div>}
+      </div>
+      {showMiss && (
+        <div className="miss-splash">
+          <div className="miss-text">MISS!</div>
+        </div>
+      )}
+      {showWrongCountry && (
+        <div className="wrong-country-splash">
+          <div className="wrong-country-text">FEL LAND!</div>
+        </div>
+      )}
       <div className="map-container">
         <MapContainer
           center={[50, 10]}
@@ -133,10 +199,40 @@ function App() {
             />
           )}
         </MapContainer>
+        <div className="countdown-container">
+          <div
+            className={`countdown-bar ${timeLeft <= 2 ? 'pulse' : ''}`}
+            style={{ width: `${(timeLeft / TIME_LIMIT) * 100}%` }}
+          />
+        </div>
       </div>
-      <button onClick={getNewCity} className="new-city-button">
-        Ny Stad
-      </button>
+      {showCityName && (
+        <div className="city-name-display">
+          {currentCity}
+        </div>
+      )}
+      {distance !== null && !showWrongCountry && (
+        <div className="distance-display">
+          {Math.round(distance)} km
+        </div>
+      )}
+      {goldRain && (
+        <div className="gold-rain">
+          {Array.from({ length: 24 }).map((_, i) => {
+            const left = Math.random() * 100;
+            const emojis = ['💰', '✨', '🥇', '⭐️', '🪙', '💛', '🏅', '🌟'];
+            const emoji = emojis[Math.floor(Math.random() * emojis.length)];
+            return (
+              <span
+                key={i}
+                style={{ left: `${left}vw`, animationDelay: `${Math.random() * 0.7}s` }}
+              >
+                {emoji}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

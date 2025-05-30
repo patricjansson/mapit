@@ -33,6 +33,27 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return R * c;
 }
 
+// Function to calculate score based on distance
+function calculateScore(distance) {
+    // Maximum distance for 0 points (in km)
+    const maxDistance = 10000;
+    // Minimum distance for 100 points (in km)
+    const minDistance = 1;
+
+    // If distance is greater than maxDistance, return 0
+    if (distance > maxDistance) return 0;
+
+    // If distance is less than minDistance, return 100
+    if (distance < minDistance) return 100;
+
+    // Calculate score using logarithmic scale
+    // Using log base 10, scaled to 0-100
+    const score = 100 - (Math.log10(distance) / Math.log10(maxDistance)) * 100;
+
+    // Round to nearest integer
+    return Math.round(score);
+}
+
 // Get random city
 app.get('/api/random-city', (req, res) => {
     const randomCity = cities[Math.floor(Math.random() * cities.length)];
@@ -44,30 +65,43 @@ app.get('/api/random-city', (req, res) => {
 });
 
 // Calculate distance
-app.post('/api/calculate-distance', (req, res) => {
+app.post('/api/calculate-distance', async (req, res) => {
     const { cityName, clickedLat, clickedLng } = req.body;
-    const city = cities.find(c => c.name === cityName);
 
-    if (!city) {
-        return res.status(404).json({ error: 'City not found' });
+    try {
+        const city = cities.find(c => c.name === cityName);
+        if (!city) {
+            return res.status(404).json({ error: 'City not found' });
+        }
+
+        const distance = calculateDistance(city.lat, city.lng, clickedLat, clickedLng);
+        const score = calculateScore(distance);
+
+        // Check if clicked location is in the wrong country
+        const wrongCountry = !isInSameCountry(city.lat, city.lng, clickedLat, clickedLng);
+
+        res.json({
+            city: cityName,
+            distance,
+            score,
+            clickedLat,
+            clickedLng,
+            wrongCountry
+        });
+    } catch (error) {
+        console.error('Error calculating distance:', error);
+        res.status(500).json({ error: 'Error calculating distance' });
     }
-
-    const distance = calculateDistance(
-        city.lat,
-        city.lng,
-        clickedLat,
-        clickedLng
-    );
-
-    res.json({
-        distance: Math.round(distance),
-        city: cityName,
-        cityLat: city.lat,
-        cityLng: city.lng,
-        clickedLat,
-        clickedLng
-    });
 });
+
+// Helper function to check if two coordinates are in the same country
+function isInSameCountry(lat1, lng1, lat2, lng2) {
+    // This is a simplified check - in a real application, you would use a proper
+    // geocoding service to determine the country for each coordinate
+    const maxDistanceForSameCountry = 1000; // 1000 km
+    const distance = calculateDistance(lat1, lng1, lat2, lng2);
+    return distance <= maxDistanceForSameCountry;
+}
 
 app.listen(port, () => {
     console.log(`Server running on port ${port}`);
