@@ -6,7 +6,7 @@ import 'leaflet/dist/leaflet.css';
 import './App.css';
 
 const API_URL = 'http://localhost:3001';
-const TIME_LIMIT = 5;
+const TIME_LIMIT = 20;
 
 // Fix for default marker icons in Leaflet with React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -48,6 +48,10 @@ function App() {
   const [showCityName, setShowCityName] = useState(false);
   const [distance, setDistance] = useState<number | null>(null);
   const [goldRain, setGoldRain] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [missCount, setMissCount] = useState(0);
+  const [wrongCountryCount, setWrongCountryCount] = useState(0);
 
   useEffect(() => {
     getNewCity();
@@ -69,15 +73,21 @@ function App() {
 
   useEffect(() => {
     let countdownTimer: NodeJS.Timeout;
-    if (!hasGuessed && timeLeft > 0 && !showCityName) {
+    if (!hasGuessed && timeLeft > 0 && !showCityName && gameStarted) {
       countdownTimer = setInterval(() => {
         setTimeLeft(prev => {
           if (prev <= 1) {
             clearInterval(countdownTimer);
             setShowMiss(true);
+            const newMissCount = missCount + 1;
+            setMissCount(newMissCount);
             setTimeout(() => {
               setShowMiss(false);
-              getNewCity();
+              if (newMissCount >= 3) {
+                setGameOver(true);
+              } else {
+                getNewCity();
+              }
             }, 1000);
             return 0;
           }
@@ -90,7 +100,7 @@ function App() {
         clearInterval(countdownTimer);
       }
     };
-  }, [hasGuessed, timeLeft, showCityName]);
+  }, [hasGuessed, timeLeft, showCityName, gameStarted, missCount]);
 
   const getNewCity = async () => {
     try {
@@ -112,7 +122,7 @@ function App() {
   };
 
   const handleMapClick = async (lat: number, lng: number) => {
-    if (hasGuessed) return;
+    if (hasGuessed || !gameStarted) return;
 
     try {
       const response = await axios.post(`${API_URL}/api/calculate-distance`, {
@@ -132,9 +142,11 @@ function App() {
       if (response.data.wrongCountry) {
         setShowWrongCountry(true);
         setTotalScore(0);
+        const newWrongCountryCount = wrongCountryCount + 1;
+        setWrongCountryCount(newWrongCountryCount);
         setTimeout(() => {
           setShowWrongCountry(false);
-          getNewCity();
+          setGameOver(true);
         }, 1000);
       } else {
         setTotalScore(prev => prev + response.data.score);
@@ -146,11 +158,78 @@ function App() {
     }
   };
 
+  const startGame = () => {
+    setGameStarted(true);
+    setGameOver(false);
+    setTotalScore(0);
+    setMissCount(0);
+    setWrongCountryCount(0);
+    getNewCity();
+  };
+
+  const resetGame = () => {
+    setGameStarted(false);
+    setGameOver(false);
+    setTotalScore(0);
+    setMissCount(0);
+    setWrongCountryCount(0);
+  };
+
+  if (gameOver) {
+    const maxPossibleScore = 1000; // Exempel på maxpoäng
+    const scorePercentage = (totalScore / maxPossibleScore) * 100;
+
+    return (
+      <div className="game-over-screen">
+        <h1>Spelet är slut!</h1>
+        <div className="summary">
+          <p>Din poäng: {totalScore}</p>
+          <p>Du kom {scorePercentage.toFixed(1)}% av vägen till maxpoäng!</p>
+          <p>Antal miss: {missCount}</p>
+          <p>Antal fel land: {wrongCountryCount}</p>
+          <div className="game-over-message">
+            {missCount >= 3 ? "Du missade för många gånger!" : "Du klickade i fel land för många gånger!"}
+          </div>
+        </div>
+        <button className="restart-button" onClick={resetGame}>
+          Spela Igen
+        </button>
+      </div>
+    );
+  }
+
+  if (!gameStarted) {
+    return (
+      <div className="start-screen">
+        <h1>Geografi Quiz</h1>
+        <div className="instructions">
+          <p>Klicka så nära platsen som möjligt!</p>
+          <ul>
+            <li>Du har 20 sekunder på dig att placera varje stad</li>
+            <li>Ju närmare du klickar, desto fler poäng får du</li>
+            <li>Klicka i rätt land för att få poäng</li>
+            <li>3 miss eller fel land = spelet är slut</li>
+          </ul>
+        </div>
+        <button className="start-button" onClick={startGame}>
+          Starta Spelet
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="App">
       <div className="score-display">
         Poäng: {totalScore}
         {currentScore !== null && <div className="current-score">+{currentScore}</div>}
+      </div>
+      <div className="timer-display">
+        {!hasGuessed && !showCityName && (
+          <div className={`timer ${timeLeft <= 5 ? 'pulse' : ''}`}>
+            {timeLeft}s
+          </div>
+        )}
       </div>
       {showMiss && (
         <div className="miss-splash">
@@ -166,6 +245,8 @@ function App() {
         <MapContainer
           center={[50, 10]}
           zoom={4}
+          minZoom={3}
+          maxZoom={10}
           style={{ height: '100%', width: '100%' }}
           zoomControl={true}
           scrollWheelZoom={true}
@@ -201,7 +282,7 @@ function App() {
         </MapContainer>
         <div className="countdown-container">
           <div
-            className={`countdown-bar ${timeLeft <= 2 ? 'pulse' : ''}`}
+            className={`countdown-bar ${timeLeft <= 5 ? 'pulse' : ''}`}
             style={{ width: `${(timeLeft / TIME_LIMIT) * 100}%` }}
           />
         </div>
