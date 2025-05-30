@@ -165,6 +165,7 @@ function App() {
     setTotalScore(0);
     setMissCount(0);
     setWrongCountryCount(0);
+    setShowCityName(true);
     getNewCity();
   };
 
